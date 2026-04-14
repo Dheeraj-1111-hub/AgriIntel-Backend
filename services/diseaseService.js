@@ -14,7 +14,7 @@ export const detectDisease = async (imagePath, cropType) => {
     form.append("cropType", cropType || "");
 
     const response = await axios.post(
-      "http://127.0.0.1:8000/predict",
+      "https://agriintel-ml-service.onrender.com/predict",
       form,
       {
         headers: form.getHeaders(),
