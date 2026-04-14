@@ -24,7 +24,7 @@ export const detectDisease = async (file, cropType) => {
       form,
       {
         headers: form.getHeaders(),
-        timeout: 30000
+        timeout: 90000
       }
     );
 
