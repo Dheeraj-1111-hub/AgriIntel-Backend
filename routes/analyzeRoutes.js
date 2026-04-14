@@ -1,3 +1,4 @@
+// routes/analyzeRoutes.js
 import express from 'express';
 import { analyzeCrop, getAnalysisById } from '../controllers/analyzeController.js';
 import { upload } from '../utils/uploader.js';

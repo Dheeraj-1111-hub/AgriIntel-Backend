@@ -1,36 +1,38 @@
-import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import multer from "multer";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// ============================================
+// MEMORY STORAGE (RENDER SAFE)
+// ============================================
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads'));
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'crop-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const storage = multer.memoryStorage();
 
-// File filter
+// ============================================
+// FILE FILTER (VALIDATION)
+// ============================================
+
 const fileFilter = (req, file, cb) => {
-  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const allowedMimes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp"
+  ];
 
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, and WEBP allowed.'));
+    cb(new Error("Invalid file type. Only JPEG, PNG, and WEBP allowed."));
   }
 };
 
-// Create multer instance
+// ============================================
+// MULTER INSTANCE
+// ============================================
+
 export const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+  storage,
+  fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024 // 5MB default
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024 // 5MB
   }
 });

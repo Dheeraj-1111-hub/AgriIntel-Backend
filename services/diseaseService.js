@@ -1,16 +1,22 @@
+// backend/services/diseaseService.js
+
 import axios from "axios";
-import fs from "fs";
 import FormData from "form-data";
 
 // ============================================
-// ML SERVICE (STABLE + SAFE VERSION)
+// ML SERVICE (BUFFER VERSION - FINAL)
 // ============================================
 
-export const detectDisease = async (imagePath, cropType) => {
+export const detectDisease = async (file, cropType) => {
   try {
     const form = new FormData();
 
-    form.append("image", fs.createReadStream(imagePath));
+    // ✅ BUFFER (NO FILE PATH)
+    form.append("image", file.buffer, {
+      filename: file.originalname,
+      contentType: file.mimetype
+    });
+
     form.append("cropType", cropType || "");
 
     const response = await axios.post(
@@ -27,9 +33,9 @@ export const detectDisease = async (imagePath, cropType) => {
     let disease = data?.disease || "Unknown";
     let confidence = Number(data?.confidence || 0);
 
-    // ============================================
-    // ✅ SAFETY FIX 1: Low confidence handling
-    // ============================================
+    // ===============================
+    // LOW CONFIDENCE HANDLING
+    // ===============================
     if (confidence < 0.5) {
       return {
         disease: "Low confidence detection",
@@ -37,9 +43,9 @@ export const detectDisease = async (imagePath, cropType) => {
       };
     }
 
-    // ============================================
-    // ✅ SAFETY FIX 2: Crop mismatch handling
-    // ============================================
+    // ===============================
+    // CROP MISMATCH HANDLING
+    // ===============================
     if (
       cropType &&
       disease !== "Unknown" &&
@@ -64,7 +70,7 @@ export const detectDisease = async (imagePath, cropType) => {
 };
 
 // ============================================
-// FORMAT FUNCTION (UNCHANGED)
+// FORMAT FUNCTION
 // ============================================
 
 export const formatDiseaseName = (name) => {

@@ -1,3 +1,5 @@
+// backend/controllers/analyzeController.js
+
 import { Scan } from "../models/Scan.js";
 import { detectDisease } from "../services/diseaseService.js";
 import { getWeather } from "../services/weatherService.js";
@@ -11,9 +13,9 @@ export const analyzeCrop = async (req, res) => {
     const { cropType, location, soilType } = req.body;
     const userId = req.user.id;
 
-    // ============================================
+    // ===============================
     // VALIDATION
-    // ============================================
+    // ===============================
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -21,53 +23,49 @@ export const analyzeCrop = async (req, res) => {
       });
     }
 
-    const imagePath = req.file.path;
-    const imageUrl = `/uploads/${req.file.filename}`;
+    // ⚠️ Since we use memory storage, no real file exists
+    const imageUrl = "memory-upload";
 
-    // ============================================
-    // STEP 1: ML
-    // ============================================
-    const disease = await detectDisease(imagePath, cropType);
+    // ===============================
+    // STEP 1: ML (BUFFER)
+    // ===============================
+    const diseaseResult = await detectDisease(req.file, cropType);
 
-    // ✅ FIX: convert to percentage (0–100)
-    const confidence = Math.round((disease.confidence || 0) * 100);
+    const confidence = Math.round((diseaseResult.confidence || 0) * 100);
 
-    // ============================================
+    // ===============================
     // STEP 2: WEATHER
-    // ============================================
+    // ===============================
     const weather = await getWeather(location);
 
-    // ============================================
+    // ===============================
     // STEP 3: RISK
-    // ============================================
+    // ===============================
     const risk = calculateRisk(
-      { disease: disease.disease, confidence },
+      { disease: diseaseResult.disease, confidence },
       weather
     );
 
-    // ============================================
+    // ===============================
     // STEP 4: YIELD
-    // ============================================
+    // ===============================
     const yieldPred = predictYield(
       risk,
-      { disease: disease.disease, confidence },
+      { disease: diseaseResult.disease, confidence },
       weather
     );
 
-    // ============================================
-    // STEP 5: RECOMMENDATIONS (AI + FALLBACK)
-    // ============================================
+    // ===============================
+    // STEP 5: RECOMMENDATIONS
+    // ===============================
     let suggestions = [];
 
     try {
-      // ✅ DEBUG LOG (optional)
-      console.log("Confidence:", confidence);
-
-      if (confidence >= 40 && disease.disease !== "Unknown") {
+      if (confidence >= 40 && diseaseResult.disease !== "Unknown") {
         console.log("🤖 Using AI recommendations");
 
         suggestions = await getAIRecommendations({
-          disease: disease.disease,
+          disease: diseaseResult.disease,
           confidence,
           cropType,
           weather,
@@ -82,15 +80,15 @@ export const analyzeCrop = async (req, res) => {
       console.warn("⚠️ Using rule-based recommendations");
 
       suggestions = getRecommendations(
-        { disease: disease.disease, confidence },
+        { disease: diseaseResult.disease, confidence },
         weather,
         risk
       );
     }
 
-    // ============================================
-    // STEP 6: SAVE
-    // ============================================
+    // ===============================
+    // SAVE
+    // ===============================
     const scan = await Scan.create({
       userId,
       imageUrl,
@@ -98,7 +96,7 @@ export const analyzeCrop = async (req, res) => {
       location,
       soilType,
 
-      disease: disease.disease,
+      disease: diseaseResult.disease,
       confidence,
 
       temperature: weather.temperature,
@@ -111,9 +109,9 @@ export const analyzeCrop = async (req, res) => {
       suggestions
     });
 
-    // ============================================
+    // ===============================
     // RESPONSE
-    // ============================================
+    // ===============================
     res.status(201).json({
       success: true,
       message: "Analysis completed successfully",
@@ -131,9 +129,9 @@ export const analyzeCrop = async (req, res) => {
   }
 };
 
-// ============================================
+// ===============================
 // GET SINGLE ANALYSIS
-// ============================================
+// ===============================
 
 export const getAnalysisById = async (req, res) => {
   try {
